@@ -125,7 +125,7 @@ const Chat = () => {
       const response = await fetch("https://flask-multi-agent.onrender.com/run/", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           data_query: message
