@@ -122,6 +122,9 @@ const Chat = () => {
     setSending(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds
+
       const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/run", {
         method: "POST",
         headers: {
@@ -129,8 +132,11 @@ const Chat = () => {
         },
         body: JSON.stringify({
           "data_query": message
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
