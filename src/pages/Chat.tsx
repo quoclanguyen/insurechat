@@ -128,7 +128,7 @@ const Chat = () => {
           "Content-Type": "text/plain",
         },
         body: JSON.stringify({
-          data_query: message
+          "data_query": message
         })
       });
 
