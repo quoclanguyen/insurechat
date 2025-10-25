@@ -157,17 +157,36 @@ serve(async (req) => {
       }
     }
 
-    // Conversation history
+    // Conversation ownership and history
     let conversationHistory: any[] = [];
-    if (conversationId) {
-      const { data: messages } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true })
-        .limit(10);
+    let finalConversationId = conversationId;
 
-      if (messages) conversationHistory = messages;
+    if (conversationId) {
+      // Verify that the conversation belongs to this user
+      const { data: conv, error: convError } = await supabase
+        .from("conversations")
+        .select("id, user_id")
+        .eq("id", conversationId)
+        .single();
+
+      if (convError || !conv) {
+        console.warn(`Conversation ${conversationId} not found or not accessible by user ${user.id}. Creating a new conversation.`);
+        finalConversationId = null;
+      } else if (conv.user_id !== user.id) {
+        // Provided conversation does not belong to authenticated user — ignore it
+        console.warn(`Conversation ${conversationId} does not belong to user ${user.id}. Ignoring provided conversationId.`);
+        finalConversationId = null;
+      } else {
+        // Load messages for the confirmed conversation
+        const { data: messages } = await supabase
+          .from("messages")
+          .select("role, content")
+          .eq("conversation_id", finalConversationId)
+          .order("created_at", { ascending: true })
+          .limit(50);
+
+        if (messages) conversationHistory = messages;
+      }
     }
 
     // Build OpenAI messages
@@ -222,9 +241,8 @@ serve(async (req) => {
     }
 
     // Save conversation and messages
-    let finalConversationId = conversationId;
-    if (!conversationId) {
-      const { data: newConv } = await supabase
+    if (!finalConversationId) {
+      const { data: newConv, error: newConvError } = await supabase
         .from("conversations")
         .insert({
           user_id: user.id,
@@ -232,7 +250,11 @@ serve(async (req) => {
         })
         .select()
         .single();
-      if (newConv) finalConversationId = newConv.id;
+      if (newConv && !newConvError) {
+        finalConversationId = newConv.id;
+      } else {
+        console.error("Failed to create conversation:", newConvError);
+      }
     }
 
     if (finalConversationId) {
@@ -250,12 +272,12 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        conversationId: finalConversationId, 
+      JSON.stringify({
+        conversationId: finalConversationId,
         response: {
           ...parsedResponse,
-          summary: userFriendlyMessage
-        }
+          summary: userFriendlyMessage,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
