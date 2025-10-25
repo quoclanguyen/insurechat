@@ -135,7 +135,7 @@ const Chat = () => {
       const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": message
@@ -175,7 +175,7 @@ const Chat = () => {
       const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 2]?.content || "",
@@ -229,7 +229,7 @@ const Chat = () => {
       const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 2]?.content || "",
@@ -274,7 +274,7 @@ const Chat = () => {
       const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 3]?.content || "",
