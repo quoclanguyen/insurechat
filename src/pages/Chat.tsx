@@ -122,7 +122,7 @@ const Chat = () => {
     setSending(true);
 
     try {
-      const response = await fetch("/api/flask/run/", {
+      const response = await fetch("https://flask-multi-agent.onrender.com/run/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
