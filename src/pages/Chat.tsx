@@ -122,25 +122,30 @@ const Chat = () => {
     setSending(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("chat", {
-        body: {
-          message: message,
-          conversationId,
-          sourceIds: selectedSources
-        }
+      const response = await fetch("https://flask-multi-agent.onrender.com/run/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data_query: message
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response.summary || "Đã nhận được phản hồi",
-        response: data.response
+        content: data.response || data.summary || "Đã nhận được phản hồi",
+        response: data
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setConversationId(data.conversationId);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Không thể gửi tin nhắn");

@@ -227,7 +227,7 @@ serve(async (req) => {
     try {
       parsedResponse = JSON.parse(assistantMessage);
       // If we successfully parsed JSON, format it for the user
-      userFriendlyMessage = formatResponseForUser(parsedResponse) + "---";
+      userFriendlyMessage = formatResponseForUser(parsedResponse);
     } catch {
       // If it's not JSON, use the raw message
       parsedResponse = {
