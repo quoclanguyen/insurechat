@@ -13,7 +13,9 @@ import {
   LogOut,
   FileText,
   Shield,
-  Loader2
+  Loader2,
+  Check,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import ComparisonTable from "@/components/ComparisonTable";
@@ -27,6 +29,9 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   response?: any;
+  agentStage?: "agent1" | "agent5" | "complete";
+  needsApproval?: boolean;
+  feedback?: string;
 }
 
 interface Source {
@@ -48,6 +53,9 @@ const Chat = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [currentAgentStage, setCurrentAgentStage] = useState<"agent1" | "agent5" | "complete" | null>(null);
+  const [pendingFeedback, setPendingFeedback] = useState("");
+  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,23 +128,19 @@ const Chat = () => {
     setMessages(prev => [...prev, userMessage]);
     setMessage("");
     setSending(true);
+    setCurrentAgentStage("agent1");
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds
-
-      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/run", {
+      // Gọi Agent đầu tiên
+      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": message
-        }),
-        signal: controller.signal
+        })
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -147,8 +151,10 @@ const Chat = () => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response || data.report || "Đã nhận được phản hồi",
-        response: data
+        content: data.result || "Đã nhận được phản hồi từ Agent phân tích dữ liệu",
+        response: data,
+        agentStage: "agent1",
+        needsApproval: true
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -157,6 +163,148 @@ const Chat = () => {
       toast.error(error.message || "Không thể gửi tin nhắn");
       // Remove user message on error
       setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleApproveAgent1 = async () => {
+    setSending(true);
+    try {
+      // Chạy các agent trung gian (2, 3, 4) và agent 5
+      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "data_query": messages[messages.length - 2]?.content || "",
+          "analysis_result": messages[messages.length - 1]?.content || ""
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.result || "Đã nhận được báo cáo cuối cùng",
+        response: data,
+        agentStage: "agent5",
+        needsApproval: true
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      setCurrentAgentStage("agent5");
+    } catch (error: any) {
+      console.error("Error processing agents:", error);
+      toast.error(error.message || "Không thể xử lý yêu cầu");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleApproveAgent5 = () => {
+    setCurrentAgentStage("complete");
+    setMessages(prev => prev.map(msg => 
+      msg.id === messages[messages.length - 1].id 
+        ? { ...msg, needsApproval: false, agentStage: "complete" }
+        : msg
+    ));
+    toast.success("Quá trình phân tích hoàn tất!");
+  };
+
+  const handleFeedbackAgent1 = async () => {
+    if (!pendingFeedback.trim()) {
+      toast.error("Vui lòng nhập feedback");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "data_query": messages[messages.length - 2]?.content || "",
+          "feedback": pendingFeedback
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.result || "Đã nhận được phản hồi cập nhật từ Agent phân tích dữ liệu",
+        response: data,
+        agentStage: "agent1",
+        needsApproval: true
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      setPendingFeedback("");
+      setShowFeedbackInput(false);
+    } catch (error: any) {
+      console.error("Error sending feedback:", error);
+      toast.error(error.message || "Không thể gửi feedback");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleFeedbackAgent5 = async () => {
+    if (!pendingFeedback.trim()) {
+      toast.error("Vui lòng nhập feedback");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "data_query": messages[messages.length - 3]?.content || "",
+          "analysis_result": messages[messages.length - 2]?.content || "",
+          "optimization_result": "Optimization results from agent 2-4",
+          "feedback": pendingFeedback
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.result || "Đã nhận được báo cáo cập nhật",
+        response: data,
+        agentStage: "agent5",
+        needsApproval: true
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      setPendingFeedback("");
+      setShowFeedbackInput(false);
+    } catch (error: any) {
+      console.error("Error sending feedback:", error);
+      toast.error(error.message || "Không thể gửi feedback");
     } finally {
       setSending(false);
     }
@@ -255,6 +403,70 @@ const Chat = () => {
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                               {msg.content}
                             </ReactMarkdown>
+                            
+                            {/* Agent Interaction UI */}
+                            {msg.needsApproval && (
+                              <div className="mt-4 p-3 bg-background/50 rounded-lg border">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {msg.agentStage === "agent1" ? "Agent 1 - Phân tích dữ liệu" : "Agent 5 - Báo cáo cuối"}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex gap-2 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    onClick={msg.agentStage === "agent1" ? handleApproveAgent1 : handleApproveAgent5}
+                                    disabled={sending}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <Check className="w-4 h-4 mr-1" />
+                                    Duyệt
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowFeedbackInput(!showFeedbackInput)}
+                                    disabled={sending}
+                                  >
+                                    <MessageSquare className="w-4 h-4 mr-1" />
+                                    Feedback
+                                  </Button>
+                                </div>
+                                
+                                {showFeedbackInput && (
+                                  <div className="mt-3 space-y-2">
+                                    <Input
+                                      placeholder="Nhập feedback của bạn..."
+                                      value={pendingFeedback}
+                                      onChange={(e) => setPendingFeedback(e.target.value)}
+                                      className="text-sm"
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={msg.agentStage === "agent1" ? handleFeedbackAgent1 : handleFeedbackAgent5}
+                                        disabled={sending || !pendingFeedback.trim()}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                      >
+                                        Gửi Feedback
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setShowFeedbackInput(false);
+                                          setPendingFeedback("");
+                                        }}
+                                      >
+                                        Hủy
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
