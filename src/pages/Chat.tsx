@@ -60,7 +60,7 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "https://dealing-towards-opinions-empty.trycloudflare.com";
+    "https://flask-multi-agent.onrender.com";
 
   useEffect(() => {
     // Set up auth listener
