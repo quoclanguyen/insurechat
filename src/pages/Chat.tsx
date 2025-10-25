@@ -57,7 +57,9 @@ const Chat = () => {
   const [pendingFeedback, setPendingFeedback] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const baseUrl = useState("https://gregory-edward-ownership-importantly.trycloudflare.com");
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://gregory-edward-ownership-importantly.trycloudflare.com";
 
   useEffect(() => {
     // Set up auth listener
@@ -133,7 +135,7 @@ const Chat = () => {
 
     try {
       // Gọi Agent đầu tiên
-      const response = await fetch(baseUrl + "/agent1", {
+      const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -173,7 +175,7 @@ const Chat = () => {
     setSending(true);
     try {
       // Chạy các agent trung gian (2, 3, 4) và agent 5
-      const response = await fetch(baseUrl + "/agent5", {
+      const response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -211,8 +213,8 @@ const Chat = () => {
 
   const handleApproveAgent5 = () => {
     setCurrentAgentStage("complete");
-    setMessages(prev => prev.map(msg => 
-      msg.id === messages[messages.length - 1].id 
+    setMessages(prev => prev.map(msg =>
+      msg.id === messages[messages.length - 1].id
         ? { ...msg, needsApproval: false, agentStage: "complete" }
         : msg
     ));
@@ -227,7 +229,7 @@ const Chat = () => {
 
     setSending(true);
     try {
-      const response = await fetch(baseUrl + "/agent1", {
+      const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -272,7 +274,7 @@ const Chat = () => {
 
     setSending(true);
     try {
-      const response = await fetch(baseUrl + "/agent5", {
+      const response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -404,7 +406,7 @@ const Chat = () => {
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                               {msg.content}
                             </ReactMarkdown>
-                            
+
                             {/* Agent Interaction UI */}
                             {msg.needsApproval && (
                               <div className="mt-4 p-3 bg-background/50 rounded-lg border">
@@ -413,7 +415,7 @@ const Chat = () => {
                                     {msg.agentStage === "agent1" ? "Agent 1 - Phân tích dữ liệu" : "Agent 5 - Báo cáo cuối"}
                                   </Badge>
                                 </div>
-                                
+
                                 <div className="flex gap-2 flex-wrap">
                                   <Button
                                     size="sm"
@@ -424,7 +426,7 @@ const Chat = () => {
                                     <Check className="w-4 h-4 mr-1" />
                                     Duyệt
                                   </Button>
-                                  
+
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -435,7 +437,7 @@ const Chat = () => {
                                     Feedback
                                   </Button>
                                 </div>
-                                
+
                                 {showFeedbackInput && (
                                   <div className="mt-3 space-y-2">
                                     <Input
