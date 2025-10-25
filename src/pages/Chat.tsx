@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Send, 
-  Upload, 
-  LogOut, 
-  FileText, 
+import {
+  Send,
+  Upload,
+  LogOut,
+  FileText,
   Shield,
   Loader2
 } from "lucide-react";
@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import ComparisonTable from "@/components/ComparisonTable";
 import RecommendationCards from "@/components/RecommendationCards";
 import FileUploadDialog from "@/components/FileUploadDialog";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -106,7 +108,7 @@ const Chat = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!message.trim() || sending) return;
 
     const userMessage: Message = {
@@ -163,8 +165,8 @@ const Chat = () => {
     );
   }
 
-  const lastResponse = messages.length > 0 && messages[messages.length - 1].role === "assistant" 
-    ? messages[messages.length - 1].response 
+  const lastResponse = messages.length > 0 && messages[messages.length - 1].role === "assistant"
+    ? messages[messages.length - 1].response
     : null;
 
   return (
@@ -181,7 +183,7 @@ const Chat = () => {
               <p className="text-xs text-muted-foreground">Trợ lý phân tích bảo hiểm</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -232,13 +234,20 @@ const Chat = () => {
                         </Avatar>
                       )}
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          msg.role === "user"
-                            ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
+                          ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground"
+                          : "bg-muted"
+                          }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === "assistant" ? (
+                          <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.content}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        )}
                       </div>
                       {msg.role === "user" && (
                         <Avatar className="w-8 h-8 border-2 border-primary/20">
@@ -340,7 +349,7 @@ const Chat = () => {
                 {lastResponse.comparison_table && lastResponse.comparison_table.length > 0 && (
                   <ComparisonTable data={lastResponse.comparison_table} />
                 )}
-                
+
                 {lastResponse.recommendations && lastResponse.recommendations.length > 0 && (
                   <RecommendationCards recommendations={lastResponse.recommendations} />
                 )}

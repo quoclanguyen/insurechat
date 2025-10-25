@@ -46,8 +46,7 @@ KHÔNG BAO GIỜ tự bịa dữ liệu hoặc đoán thiếu thông tin.`;
 
 serve(async (req) => {
   console.log("Chat function called");
-  
-  // Handle CORS preflight
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -55,13 +54,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    if (!openaiApiKey) {
+      throw new Error("OPENAI_API_KEY not configured");
     }
 
-    // Parse request
     const { message, conversationId, sourceIds } = await req.json();
     console.log("Request:", { message, conversationId, sourceIds });
 
@@ -72,7 +70,6 @@ serve(async (req) => {
       );
     }
 
-    // Get auth token
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
@@ -81,13 +78,10 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with user's token
     const supabase = createClient(supabaseUrl!, supabaseKey!);
-    
-    // Verify user
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
+
     if (userError || !user) {
       console.error("Auth error:", userError);
       return new Response(
@@ -98,7 +92,7 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
-    // Get source documents if provided
+    // Build documents context
     let documentsContext = "";
     if (sourceIds && sourceIds.length > 0) {
       const { data: sources } = await supabase
@@ -108,14 +102,14 @@ serve(async (req) => {
         .eq("user_id", user.id);
 
       if (sources && sources.length > 0) {
-        documentsContext = "\n\nTÀI LIỆU THAM KHẢO:\n" + 
-          sources.map((s, i) => 
+        documentsContext = "\n\nTÀI LIỆU THAM KHẢO:\n" +
+          sources.map((s, i) =>
             `[${i + 1}] ${s.name}:\n${s.extracted_text || "Chưa trích xuất văn bản"}\n`
           ).join("\n");
       }
     }
 
-    // Get conversation history
+    // Conversation history
     let conversationHistory: any[] = [];
     if (conversationId) {
       const { data: messages } = await supabase
@@ -125,27 +119,25 @@ serve(async (req) => {
         .order("created_at", { ascending: true })
         .limit(10);
 
-      if (messages) {
-        conversationHistory = messages;
-      }
+      if (messages) conversationHistory = messages;
     }
 
-    // Call Lovable AI
-    console.log("Calling Lovable AI...");
+    // Build OpenAI messages
     const aiMessages = [
       { role: "system", content: SYSTEM_PROMPT + documentsContext },
       ...conversationHistory,
-      { role: "user", content: message }
+      { role: "user", content: message },
     ];
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log("Calling OpenAI...");
+    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
+        "Authorization": `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini", // You can change this to gpt-4o or gpt-3.5-turbo
         messages: aiMessages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -154,30 +146,14 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Vượt quá giới hạn yêu cầu. Vui lòng thử lại sau." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Cần nạp thêm credits. Vui lòng liên hệ quản trị viên." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      console.error("OpenAI API error:", aiResponse.status, errorText);
+      throw new Error(`OpenAI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const assistantMessage = aiData.choices[0].message.content;
     console.log("AI response received");
 
-    // Try to parse as JSON, fallback to plain text
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(assistantMessage);
@@ -191,7 +167,7 @@ serve(async (req) => {
       };
     }
 
-    // Create or update conversation
+    // Save conversation and messages
     let finalConversationId = conversationId;
     if (!conversationId) {
       const { data: newConv } = await supabase
@@ -202,28 +178,15 @@ serve(async (req) => {
         })
         .select()
         .single();
-      
-      if (newConv) {
-        finalConversationId = newConv.id;
-      }
+      if (newConv) finalConversationId = newConv.id;
     }
 
-    // Save messages
     if (finalConversationId) {
       await supabase.from("messages").insert([
-        {
-          conversation_id: finalConversationId,
-          role: "user",
-          content: message
-        },
-        {
-          conversation_id: finalConversationId,
-          role: "assistant",
-          content: assistantMessage
-        }
+        { conversation_id: finalConversationId, role: "user", content: message },
+        { conversation_id: finalConversationId, role: "assistant", content: assistantMessage }
       ]);
 
-      // Save recommendation if structured
       if (parsedResponse.recommendations && parsedResponse.recommendations.length > 0) {
         await supabase.from("recommendations").insert({
           conversation_id: finalConversationId,
@@ -233,20 +196,15 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        conversationId: finalConversationId,
-        response: parsedResponse
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ conversationId: finalConversationId, response: parsedResponse }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
     console.error("Error in chat function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    const message = error instanceof Error ? error.message : "Internal server error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
