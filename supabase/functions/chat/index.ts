@@ -231,7 +231,7 @@ serve(async (req) => {
     } catch {
       // If it's not JSON, use the raw message
       parsedResponse = {
-        summary: assistantMessage,
+        summary: assistantMessage + "---",
         comparison_table: [],
         recommendations: [],
         citations: [],

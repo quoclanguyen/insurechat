@@ -91,7 +91,7 @@ const Auth = () => {
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {isSignUp ? "Tạo tài khoản" : "Đăng nhập abcd"}
+            {isSignUp ? "Tạo tài khoản" : "Đăng nhập"}
           </CardTitle>
           <CardDescription>
             InsureChat VN - Trợ lý phân tích bảo hiểm thông minh
