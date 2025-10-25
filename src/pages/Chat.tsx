@@ -53,9 +53,10 @@ const Chat = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [currentAgentStage, setCurrentAgentStage] = useState<"agent1" | "agent5" | "complete" | null>(null);
+  const [currentAgentStage, setCurrentAgentStage] = useState<"agent1" | "agent2" | "agent3" | "agent4" | "agent5" | "complete" | null>(null);
   const [pendingFeedback, setPendingFeedback] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+  const [agentResults, setAgentResults] = useState<{[key: string]: string}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -174,35 +175,111 @@ const Chat = () => {
   const handleApproveAgent1 = async () => {
     setSending(true);
     try {
-      // Chạy các agent trung gian (2, 3, 4) và agent 5
-      const response = await fetch(`${BASE_URL}/agent5`, {
+      const originalQuery = messages[messages.length - 2]?.content || "";
+      const agent1Result = messages[messages.length - 1]?.content || "";
+      
+      // Lưu kết quả Agent 1
+      setAgentResults(prev => ({ ...prev, agent1: agent1Result }));
+      
+      // Chạy Agent 2
+      setCurrentAgentStage("agent2");
+      const agent2Response = await fetch(`${BASE_URL}/agent2`, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
         },
         body: JSON.stringify({
-          "data_query": messages[messages.length - 2]?.content || "",
-          "analysis_result": messages[messages.length - 1]?.content || ""
+          "data_query": originalQuery,
+          "analysis_result": agent1Result
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!agent2Response.ok) {
+        throw new Error(`HTTP error! status: ${agent2Response.status}`);
       }
 
-      const data = await response.json();
+      const agent2Data = await agent2Response.json();
+      const agent2Result = agent2Data.result || "";
+      setAgentResults(prev => ({ ...prev, agent2: agent2Result }));
+
+      // Chạy Agent 3
+      setCurrentAgentStage("agent3");
+      const agent3Response = await fetch(`${BASE_URL}/agent3`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: JSON.stringify({
+          "data_query": originalQuery,
+          "analysis_result": agent1Result,
+          "optimization_result": agent2Result
+        })
+      });
+
+      if (!agent3Response.ok) {
+        throw new Error(`HTTP error! status: ${agent3Response.status}`);
+      }
+
+      const agent3Data = await agent3Response.json();
+      const agent3Result = agent3Data.result || "";
+      setAgentResults(prev => ({ ...prev, agent3: agent3Result }));
+
+      // Chạy Agent 4
+      setCurrentAgentStage("agent4");
+      const agent4Response = await fetch(`${BASE_URL}/agent4`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: JSON.stringify({
+          "data_query": originalQuery,
+          "analysis_result": agent1Result,
+          "optimization_result": agent2Result,
+          "additional_insights": agent3Result
+        })
+      });
+
+      if (!agent4Response.ok) {
+        throw new Error(`HTTP error! status: ${agent4Response.status}`);
+      }
+
+      const agent4Data = await agent4Response.json();
+      const agent4Result = agent4Data.result || "";
+      setAgentResults(prev => ({ ...prev, agent4: agent4Result }));
+
+      // Chạy Agent 5
+      setCurrentAgentStage("agent5");
+      const agent5Response = await fetch(`${BASE_URL}/agent5`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: JSON.stringify({
+          "data_query": originalQuery,
+          "analysis_result": agent1Result,
+          "optimization_result": agent2Result,
+          "additional_insights": agent3Result,
+          "qa_result": agent4Result
+        })
+      });
+
+      if (!agent5Response.ok) {
+        throw new Error(`HTTP error! status: ${agent5Response.status}`);
+      }
+
+      const agent5Data = await agent5Response.json();
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.result || "Đã nhận được báo cáo cuối cùng",
-        response: data,
+        content: agent5Data.result || "Đã nhận được báo cáo cuối cùng",
+        response: agent5Data,
         agentStage: "agent5",
         needsApproval: true
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setCurrentAgentStage("agent5");
+      setAgentResults(prev => ({ ...prev, agent5: agent5Data.result || "" }));
     } catch (error: any) {
       console.error("Error processing agents:", error);
       toast.error(error.message || "Không thể xử lý yêu cầu");
@@ -281,8 +358,10 @@ const Chat = () => {
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 3]?.content || "",
-          "analysis_result": messages[messages.length - 2]?.content || "",
-          "optimization_result": "Optimization results from agent 2-4",
+          "analysis_result": agentResults.agent1 || "",
+          "optimization_result": agentResults.agent2 || "",
+          "additional_insights": agentResults.agent3 || "",
+          "qa_result": agentResults.agent4 || "",
           "feedback": pendingFeedback
         })
       });
@@ -412,8 +491,20 @@ const Chat = () => {
                               <div className="mt-4 p-3 bg-background/50 rounded-lg border">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Badge variant="outline" className="text-xs">
-                                    {msg.agentStage === "agent1" ? "Agent 1 - Phân tích dữ liệu" : "Agent 5 - Báo cáo cuối"}
+                                    {msg.agentStage === "agent1" && "Agent 1 - Phân tích dữ liệu"}
+                                    {msg.agentStage === "agent2" && "Agent 2 - Tối ưu hóa quy trình"}
+                                    {msg.agentStage === "agent3" && "Agent 3 - Phân tích bổ sung"}
+                                    {msg.agentStage === "agent4" && "Agent 4 - Đảm bảo chất lượng"}
+                                    {msg.agentStage === "agent5" && "Agent 5 - Báo cáo cuối"}
                                   </Badge>
+                                  {currentAgentStage && currentAgentStage !== "agent1" && currentAgentStage !== "agent5" && (
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary" className="text-xs">
+                                        Đang xử lý {currentAgentStage}...
+                                      </Badge>
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="flex gap-2 flex-wrap">
