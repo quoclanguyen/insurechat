@@ -9,10 +9,9 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Bạn là "InsureChat VN" - trợ lý AI chuyên phân tích bảo hiểm tại Việt Nam.
 
 BẠN PHẢI:
-1. Chỉ sử dụng dữ liệu từ tài liệu người dùng cung cấp
-2. Trả lời bằng tiếng Việt, số tiền tính bằng VND
-3. Đưa ra lý do và trích dẫn cho mọi khuyến nghị
-4. Trả về JSON với cấu trúc sau:
+1. Trả lời bằng tiếng Việt, số tiền tính bằng VND
+2. Đưa ra lý do và trích dẫn cho mọi khuyến nghị
+3. Trả về câu trả lời với cấu trúc sau (Không trả về JSON):
 {
   "summary": "Tóm tắt ngắn gọn",
   "comparison_table": [
@@ -43,6 +42,55 @@ BẠN PHẢI:
 }
 
 KHÔNG BAO GIỜ tự bịa dữ liệu hoặc đoán thiếu thông tin.`;
+
+function formatResponseForUser(parsedResponse: any): string {
+  let formattedText = "";
+  
+  // Add summary
+  if (parsedResponse.summary) {
+    formattedText += `## Tóm tắt\n\n${parsedResponse.summary}\n\n`;
+  }
+  
+  // Add comparison table if available
+  if (parsedResponse.comparison_table && parsedResponse.comparison_table.length > 0) {
+    formattedText += `## Bảng so sánh các gói bảo hiểm\n\n`;
+    parsedResponse.comparison_table.forEach((plan: any, index: number) => {
+      formattedText += `### ${plan.plan_name || `Gói ${index + 1}`}\n`;
+      if (plan.premium) formattedText += `- **Phí bảo hiểm**: ${plan.premium}\n`;
+      if (plan.coverage) formattedText += `- **Quyền lợi**: ${plan.coverage}\n`;
+      if (plan.exclusions) formattedText += `- **Điều khoản loại trừ**: ${plan.exclusions}\n`;
+      if (plan.deductible) formattedText += `- **Mức khấu trừ**: ${plan.deductible}\n`;
+      formattedText += `\n`;
+    });
+  }
+  
+  // Add recommendations if available
+  if (parsedResponse.recommendations && parsedResponse.recommendations.length > 0) {
+    formattedText += `## Khuyến nghị\n\n`;
+    parsedResponse.recommendations.forEach((rec: any, index: number) => {
+      formattedText += `### ${rec.plan_name || `Khuyến nghị ${index + 1}`} (Điểm: ${rec.score}/100)\n`;
+      if (rec.reason) formattedText += `**Lý do**: ${rec.reason}\n`;
+      if (rec.best_for) formattedText += `**Phù hợp cho**: ${rec.best_for}\n`;
+      formattedText += `\n`;
+    });
+  }
+  
+  // Add citations if available
+  if (parsedResponse.citations && parsedResponse.citations.length > 0) {
+    formattedText += `## Nguồn tham khảo\n\n`;
+    parsedResponse.citations.forEach((citation: any, index: number) => {
+      formattedText += `${index + 1}. **${citation.source}** (Trang ${citation.page})\n`;
+      formattedText += `   ${citation.text}\n\n`;
+    });
+  }
+  
+  // Add disclaimer
+  if (parsedResponse.disclaimer) {
+    formattedText += `---\n\n*${parsedResponse.disclaimer}*`;
+  }
+  
+  return formattedText.trim();
+}
 
 serve(async (req) => {
   console.log("Chat function called");
@@ -155,9 +203,14 @@ serve(async (req) => {
     console.log("AI response received");
 
     let parsedResponse;
+    let userFriendlyMessage = assistantMessage;
+    
     try {
       parsedResponse = JSON.parse(assistantMessage);
+      // If we successfully parsed JSON, format it for the user
+      userFriendlyMessage = formatResponseForUser(parsedResponse);
     } catch {
+      // If it's not JSON, use the raw message
       parsedResponse = {
         summary: assistantMessage,
         comparison_table: [],
@@ -165,6 +218,7 @@ serve(async (req) => {
         citations: [],
         disclaimer: "Đây chỉ là thông tin tham khảo. Vui lòng đọc kỹ điều khoản bảo hiểm trước khi quyết định."
       };
+      userFriendlyMessage = assistantMessage;
     }
 
     // Save conversation and messages
@@ -184,7 +238,7 @@ serve(async (req) => {
     if (finalConversationId) {
       await supabase.from("messages").insert([
         { conversation_id: finalConversationId, role: "user", content: message },
-        { conversation_id: finalConversationId, role: "assistant", content: assistantMessage }
+        { conversation_id: finalConversationId, role: "assistant", content: userFriendlyMessage }
       ]);
 
       if (parsedResponse.recommendations && parsedResponse.recommendations.length > 0) {
@@ -196,7 +250,13 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ conversationId: finalConversationId, response: parsedResponse }),
+      JSON.stringify({ 
+        conversationId: finalConversationId, 
+        response: {
+          ...parsedResponse,
+          summary: userFriendlyMessage
+        }
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
