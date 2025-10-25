@@ -147,7 +147,7 @@ const Chat = () => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response || data.summary || "Đã nhận được phản hồi",
+        content: data.response || data.report || "Đã nhận được phản hồi",
         response: data
       };
 
