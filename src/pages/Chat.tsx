@@ -57,6 +57,7 @@ const Chat = () => {
   const [pendingFeedback, setPendingFeedback] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const baseUrl = useState("https://gregory-edward-ownership-importantly.trycloudflare.com");
 
   useEffect(() => {
     // Set up auth listener
@@ -132,7 +133,7 @@ const Chat = () => {
 
     try {
       // Gọi Agent đầu tiên
-      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
+      const response = await fetch(baseUrl + "/agent1", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -172,7 +173,7 @@ const Chat = () => {
     setSending(true);
     try {
       // Chạy các agent trung gian (2, 3, 4) và agent 5
-      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
+      const response = await fetch(baseUrl + "/agent5", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -226,7 +227,7 @@ const Chat = () => {
 
     setSending(true);
     try {
-      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent1", {
+      const response = await fetch(baseUrl + "/agent1", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
@@ -271,7 +272,7 @@ const Chat = () => {
 
     setSending(true);
     try {
-      const response = await fetch("https://friday-ted-plots-proper.trycloudflare.com/agent5", {
+      const response = await fetch(baseUrl + "/agent5", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
