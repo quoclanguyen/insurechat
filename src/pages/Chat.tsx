@@ -62,6 +62,14 @@ const Chat = () => {
     import.meta.env.VITE_API_BASE_URL ||
     "https://request-hotel-diverse-texas.trycloudflare.com";
 
+  // Helper function to create download URLs
+  const createDownloadUrl = (filePath: string) => {
+    if (!filePath) return null;
+    // Remove leading slash if present and ensure proper URL construction
+    const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    return `${BASE_URL}/${cleanPath}`;
+  };
+
   useEffect(() => {
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -542,12 +550,14 @@ ${evaluatorInfo.alternatives ? 'Có các lựa chọn thay thế được đề 
 ${evaluatorInfo.rationale || 'Không có thông tin'}
 
 **📁 Các file báo cáo đã tạo:**
-${reportInfo.report_html_path ? `- 📄 **HTML:** ${reportInfo.report_html_path}` : ''}
-${reportInfo.report_md_path ? `- 📝 **Markdown:** ${reportInfo.report_md_path}` : ''}
-${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` : '❌ PDF chưa được tạo'}
+${reportInfo.report_html_path ? `- 📄 **HTML:** [Tải xuống](${createDownloadUrl(reportInfo.report_html_path)})` : ''}
+${reportInfo.report_md_path ? `- 📝 **Markdown:** [Tải xuống](${createDownloadUrl(reportInfo.report_md_path)})` : ''}
+${reportInfo.report_pdf_path ? `- 📋 **PDF:** [Tải xuống](${createDownloadUrl(reportInfo.report_pdf_path)})` : '❌ PDF chưa được tạo'}
 
 **📊 Biểu đồ trực quan:**
-${visualizerInfo.error ? `❌ **Lỗi tạo biểu đồ:** ${visualizerInfo.error}` : '✅ Biểu đồ đã được tạo'}
+${visualizerInfo.error ? `❌ **Lỗi tạo biểu đồ:** ${visualizerInfo.error}` : 
+  visualizerInfo.plot_path ? `✅ Biểu đồ đã được tạo: [Tải xuống](${createDownloadUrl(visualizerInfo.plot_path)})` : 
+  '✅ Biểu đồ đã được tạo'}
 
 **Thời gian đánh giá:** ${evaluatorInfo.evaluated_at ? new Date(evaluatorInfo.evaluated_at).toLocaleString('vi-VN') : 'N/A'}
 
