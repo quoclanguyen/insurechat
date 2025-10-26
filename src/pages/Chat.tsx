@@ -437,23 +437,25 @@ ${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?
        let evaluatorInfo: any = {};
        try {
          if (parsedAgent5Result?.evaluator && typeof parsedAgent5Result.evaluator === 'string') {
-           // Extract key-value pairs from the evaluator string
+           // Extract key-value pairs from the evaluator string with more precise regex
            const evaluatorStr = parsedAgent5Result.evaluator;
+           
+           // Helper function to extract values more precisely
+           const extractValue = (pattern: RegExp) => {
+             const match = evaluatorStr.match(pattern);
+             if (!match) return null;
+             const value = match[1];
+             return value === 'None' ? null : value;
+           };
+           
            evaluatorInfo = {
-             recommended_price: evaluatorStr.includes('recommended_price=') ? 
-               evaluatorStr.match(/recommended_price=([^,]+)/)?.[1] : null,
-             change_amount: evaluatorStr.includes('change_amount=') ? 
-               evaluatorStr.match(/change_amount=([^,]+)/)?.[1] : null,
-             change_pct: evaluatorStr.includes('change_pct=') ? 
-               evaluatorStr.match(/change_pct=([^,]+)/)?.[1] : null,
-             price_direction: evaluatorStr.includes("price_direction='") ? 
-               evaluatorStr.match(/price_direction='([^']+)'/)?.[1] : null,
-             company: evaluatorStr.includes('company=') ? 
-               evaluatorStr.match(/company=([^,]+)/)?.[1] : null,
-             rationale: evaluatorStr.includes("rationale='") ? 
-               evaluatorStr.match(/rationale='([^']+)'/)?.[1] : null,
-             evaluated_at: evaluatorStr.includes("evaluated_at='") ? 
-               evaluatorStr.match(/evaluated_at='([^']+)'/)?.[1] : null
+             recommended_price: extractValue(/recommended_price=([^,\s]+)/),
+             change_amount: extractValue(/change_amount=([^,\s]+)/),
+             change_pct: extractValue(/change_pct=([^,\s]+)/),
+             price_direction: evaluatorStr.match(/price_direction='([^']+)'/)?.[1] || null,
+             company: extractValue(/company=([^,\s]+)/),
+             rationale: evaluatorStr.match(/rationale='([^']+)'/)?.[1] || null,
+             evaluated_at: evaluatorStr.match(/evaluated_at='([^']+)'/)?.[1] || null
            };
          }
        } catch (e) {

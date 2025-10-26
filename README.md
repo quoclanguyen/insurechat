@@ -1,73 +1,245 @@
-# Welcome to your Lovable project
+# InsureChat VN - AI-Powered Insurance Analysis Platform
 
-## Project info
+![InsureChat VN](https://img.shields.io/badge/InsureChat-VN-blue)
+![React](https://img.shields.io/badge/React-18.0+-61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6)
+![Vite](https://img.shields.io/badge/Vite-5.0+-646CFF)
 
-**URL**: https://lovable.dev/projects/f6192826-62fd-4576-9058-b593b311125d
+## 📋 Overview
 
-## How can I edit this code?
+InsureChat VN is an intelligent insurance analysis platform that leverages a multi-agent AI system to provide comprehensive insurance recommendations, market analysis, and personalized advice for Vietnamese users. The platform combines data analysis, market research, and AI-powered insights to help users make informed insurance decisions.
 
-There are several ways of editing your application.
+## ✨ Key Features
 
-**Use Lovable**
+### 🤖 Multi-Agent AI System
+- **Agent 1 - Data Analyst (NLU)**: Analyzes user queries and extracts structured information
+- **Agent 2 - Process Optimizer**: Searches and compares market prices from multiple insurance providers
+- **Agent 3 - Additional Analyst**: Provides supplementary product analysis and recommendations
+- **Agent 4 - Quality Assurance**: Performs web market research and quality validation
+- **Agent 5 - Report Writer**: Generates comprehensive reports with pricing recommendations
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f6192826-62fd-4576-9058-b593b311125d) and start prompting.
+### 💬 Interactive Chat Interface
+- Real-time conversation with AI agents
+- Step-by-step approval workflow for each agent
+- Feedback system for agent refinement
+- Rich markdown rendering for reports and analysis
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📊 Comprehensive Analysis
+- Market price comparison tables
+- Insurance product recommendations
+- Pricing evaluation and suggestions
+- Detailed rationale for recommendations
+- Report generation (HTML, Markdown, PDF)
 
-**Use your preferred IDE**
+### 🔐 User Management
+- Supabase authentication
+- User session management
+- Document upload and management
+- Source file organization
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Technology Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend
+- **React 18** - Modern UI library
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Beautiful UI components
+- **React Router** - Client-side routing
+- **React Markdown** - Markdown rendering
 
-Follow these steps:
+### Backend & Services
+- **Supabase** - Authentication and database
+- **Flask Multi-Agent API** - AI processing backend
+- **Cloudflare Tunnels** - API proxy and CORS handling
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Development Tools
+- **ESLint** - Code linting
+- **PostCSS** - CSS processing
+- **Lovable** - AI-powered development platform
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🚀 Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Git
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <YOUR_GIT_URL>
+   cd insurechat
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_API_BASE_URL=https://your-flask-api-url.com
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:8080`
+
+## 📁 Project Structure
+
+```
+insurechat/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── ui/             # shadcn/ui components
+│   │   ├── ComparisonTable.tsx
+│   │   ├── RecommendationCards.tsx
+│   │   └── FileUploadDialog.tsx
+│   ├── pages/              # Application pages
+│   │   ├── Auth.tsx        # Authentication page
+│   │   ├── Chat.tsx        # Main chat interface
+│   │   ├── Index.tsx       # Landing page
+│   │   └── NotFound.tsx    # 404 page
+│   ├── hooks/              # Custom React hooks
+│   ├── integrations/       # External service integrations
+│   │   └── supabase/       # Supabase client and types
+│   ├── lib/                # Utility functions
+│   └── main.tsx           # Application entry point
+├── supabase/               # Supabase configuration
+│   ├── functions/          # Edge functions
+│   └── migrations/         # Database migrations
+├── public/                 # Static assets
+└── docs/                   # Documentation
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Configuration
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Vite Proxy Configuration
+The project uses Vite's proxy feature to handle CORS issues with the Flask API:
 
-**Use GitHub Codespaces**
+```typescript
+// vite.config.ts
+proxy: {
+  '/api/flask': {
+    target: 'https://your-flask-api-url.com',
+    changeOrigin: true,
+    rewrite: (path) => path.replace(/^\/api\/flask/, ''),
+  }
+}
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Supabase Setup
+1. Create a new Supabase project
+2. Set up authentication providers
+3. Create the required database tables:
+   - `sources` - for document management
+   - `conversations` - for chat history
+4. Configure RLS policies
 
-## What technologies are used for this project?
+## 🤖 Multi-Agent Workflow
 
-This project is built with:
+### Agent Processing Flow
+1. **User Input** → Agent 1 (Data Analysis)
+2. **Agent 1 Approval** → Agent 2 (Market Search)
+3. **Agent 2 Completion** → Agent 3 (Additional Analysis)
+4. **Agent 3 Completion** → Agent 4 (Quality Assurance)
+5. **Agent 4 Completion** → Agent 5 (Report Generation)
+6. **Agent 5 Approval** → Complete Analysis
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Agent Output Formats
+Each agent returns structured JSON data:
+- **Agent 1**: Customer profile, policy type, confidence score
+- **Agent 2**: Market prices, product comparisons
+- **Agent 3**: Additional product recommendations
+- **Agent 4**: Web market insights, quality validation
+- **Agent 5**: Final report with pricing recommendations
 
-## How can I deploy this project?
+## 📱 Usage
 
-Simply open [Lovable](https://lovable.dev/projects/f6192826-62fd-4576-9058-b593b311125d) and click on Share -> Publish.
+### For Users
+1. **Sign Up/Login** - Create an account or sign in
+2. **Upload Documents** - Add insurance documents for analysis
+3. **Ask Questions** - Chat with the AI about insurance options
+4. **Review Analysis** - Approve each agent's analysis step by step
+5. **Get Recommendations** - Receive comprehensive insurance recommendations
 
-## Can I connect a custom domain to my Lovable project?
+### For Developers
+1. **Agent Integration** - Add new agents to the workflow
+2. **UI Components** - Extend the component library
+3. **API Integration** - Connect additional data sources
+4. **Customization** - Modify the analysis workflow
 
-Yes, you can!
+## 🔒 Security Features
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **Authentication**: Secure user authentication via Supabase
+- **CORS Protection**: Proper CORS handling for API calls
+- **Data Validation**: Input validation and sanitization
+- **Error Handling**: Comprehensive error handling and logging
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Other Platforms
+- **Netlify**: Static site deployment
+- **Railway**: Full-stack deployment
+- **Docker**: Containerized deployment
+
+## 📊 Performance
+
+- **Fast Loading**: Vite's optimized build process
+- **Code Splitting**: Automatic code splitting for better performance
+- **Lazy Loading**: Components loaded on demand
+- **Caching**: Efficient caching strategies
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the `/docs` folder for detailed guides
+- **Issues**: Report bugs and request features via GitHub Issues
+- **Discussions**: Join community discussions in GitHub Discussions
+
+## 🔮 Roadmap
+
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+- [ ] Mobile app development
+- [ ] Integration with more insurance providers
+- [ ] AI model fine-tuning
+- [ ] Real-time notifications
+- [ ] Advanced reporting features
+
+## 🙏 Acknowledgments
+
+- **Lovable** - AI-powered development platform
+- **Supabase** - Backend-as-a-Service
+- **shadcn/ui** - Beautiful UI components
+- **Vite** - Fast build tool
+- **React** - UI library
+
+---
+
+**Made with ❤️ for the Vietnamese insurance market**
