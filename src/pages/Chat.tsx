@@ -424,16 +424,64 @@ ${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?
 
        const agent5Data = await agent5Response.json();
 
-       const reportInfo = agent5Data.result || {};
+       // Parse the JSON string result for Agent 5
+       let parsedAgent5Result: any = {};
+       try {
+         parsedAgent5Result = typeof agent5Data.result === 'string' ? JSON.parse(agent5Data.result) : agent5Data.result;
+       } catch (e) {
+         console.error('Error parsing Agent 5 result:', e);
+         parsedAgent5Result = agent5Data.result || {};
+       }
+
+       // Parse the evaluator string
+       let evaluatorInfo: any = {};
+       try {
+         if (parsedAgent5Result?.evaluator && typeof parsedAgent5Result.evaluator === 'string') {
+           // Extract key-value pairs from the evaluator string
+           const evaluatorStr = parsedAgent5Result.evaluator;
+           evaluatorInfo = {
+             recommended_price: evaluatorStr.includes('recommended_price=') ? 
+               evaluatorStr.match(/recommended_price=([^,]+)/)?.[1] : null,
+             change_amount: evaluatorStr.includes('change_amount=') ? 
+               evaluatorStr.match(/change_amount=([^,]+)/)?.[1] : null,
+             change_pct: evaluatorStr.includes('change_pct=') ? 
+               evaluatorStr.match(/change_pct=([^,]+)/)?.[1] : null,
+             price_direction: evaluatorStr.includes("price_direction='") ? 
+               evaluatorStr.match(/price_direction='([^']+)'/)?.[1] : null,
+             company: evaluatorStr.includes('company=') ? 
+               evaluatorStr.match(/company=([^,]+)/)?.[1] : null,
+             rationale: evaluatorStr.includes("rationale='") ? 
+               evaluatorStr.match(/rationale='([^']+)'/)?.[1] : null,
+             evaluated_at: evaluatorStr.includes("evaluated_at='") ? 
+               evaluatorStr.match(/evaluated_at='([^']+)'/)?.[1] : null
+           };
+         }
+       } catch (e) {
+         console.error('Error parsing evaluator info:', e);
+       }
+
+       const reportInfo = parsedAgent5Result?.report || {};
        const reportContent = `**Agent 5 - Báo cáo cuối cùng**
 
 **Trạng thái tạo báo cáo:** ✅ Hoàn tất
 **Thời gian tạo:** ${reportInfo.generated_at ? new Date(reportInfo.generated_at).toLocaleString('vi-VN') : 'N/A'}
 
+**Đánh giá giá cả:**
+- **Hướng giá đề xuất:** ${evaluatorInfo.price_direction || 'N/A'}
+- **Giá đề xuất:** ${evaluatorInfo.recommended_price || 'N/A'}
+- **Thay đổi số tiền:** ${evaluatorInfo.change_amount || 'N/A'}
+- **Thay đổi phần trăm:** ${evaluatorInfo.change_pct || 'N/A'}
+- **Công ty:** ${evaluatorInfo.company || 'N/A'}
+
+**Lý do đánh giá:**
+${evaluatorInfo.rationale || 'Không có thông tin'}
+
 **Các file báo cáo đã tạo:**
 ${reportInfo.report_html_path ? `- 📄 **HTML:** ${reportInfo.report_html_path}` : ''}
 ${reportInfo.report_md_path ? `- 📝 **Markdown:** ${reportInfo.report_md_path}` : ''}
 ${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` : '❌ PDF chưa được tạo'}
+
+**Thời gian đánh giá:** ${evaluatorInfo.evaluated_at ? new Date(evaluatorInfo.evaluated_at).toLocaleString('vi-VN') : 'N/A'}
 
 **Tóm tắt:** Báo cáo phân tích bảo hiểm đã được tạo thành công với đầy đủ thông tin về giá thị trường và khuyến nghị.`;
 
@@ -447,7 +495,7 @@ ${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` :
        };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setAgentResults(prev => ({ ...prev, agent5: agent5Data }));
+      setAgentResults(prev => ({ ...prev, agent5: parsedAgent5Result }));
     } catch (error: any) {
       console.error("Error processing agents:", error);
       toast.error(error.message || "Không thể xử lý yêu cầu");
