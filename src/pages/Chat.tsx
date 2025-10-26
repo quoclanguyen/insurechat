@@ -60,7 +60,7 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "https://delayed-stanley-strain-gardens.trycloudflare.com";
+    "https://hire-former-boutique-tariff.trycloudflare.com";
 
   useEffect(() => {
     // Set up auth listener
