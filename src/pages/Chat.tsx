@@ -67,7 +67,7 @@ const Chat = () => {
     if (!filePath) return null;
     // Remove leading slash if present and ensure proper URL construction
     const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-    return `${BASE_URL}\\${cleanPath}`;
+    return `${BASE_URL}/${cleanPath}`;
   };
 
   useEffect(() => {
