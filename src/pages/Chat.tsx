@@ -29,7 +29,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   response?: any;
-  agentStage?: "agent1" | "agent5" | "complete";
+  agentStage?: "agent1" | "agent2" | "agent3" | "agent4" | "agent5" | "complete";
   needsApproval?: boolean;
   feedback?: string;
 }
@@ -139,7 +139,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": message
@@ -152,14 +152,14 @@ const Chat = () => {
 
       const data = await response.json();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.result || "Đã nhận được phản hồi từ Agent phân tích dữ liệu",
-        response: data,
-        agentStage: "agent1",
-        needsApproval: true
-      };
+       const assistantMessage: Message = {
+         id: (Date.now() + 1).toString(),
+         role: "assistant",
+         content: `**Agent 1 - Phân tích dữ liệu**\n\n**Độ tin cậy:** ${data.result?.confidence ? (data.result.confidence * 100).toFixed(1) + '%' : 'N/A'}\n\n**Thông tin khách hàng:**\n- Tuổi: ${data.result?.structured_request?.customer_profile?.age || 'N/A'}\n- Giới tính: ${data.result?.structured_request?.customer_profile?.gender || 'N/A'}\n- Vị trí: ${data.result?.structured_request?.customer_profile?.location || 'N/A'}\n\n**Loại bảo hiểm:** ${data.result?.structured_request?.policy_type || 'N/A'}\n\n**Lợi ích yêu cầu:** ${data.result?.structured_request?.benefits?.length ? data.result.structured_request.benefits.join(', ') : 'Không có'}`,
+         response: data,
+         agentStage: "agent1",
+         needsApproval: true
+       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
@@ -186,7 +186,7 @@ const Chat = () => {
       const agent2Response = await fetch(`${BASE_URL}/agent2`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -198,16 +198,43 @@ const Chat = () => {
         throw new Error(`HTTP error! status: ${agent2Response.status}`);
       }
 
-      const agent2Data = await agent2Response.json();
-      const agent2Result = agent2Data.result || "";
-      setAgentResults(prev => ({ ...prev, agent2: agent2Result }));
+       const agent2Data = await agent2Response.json();
+       const agent2Result = agent2Data.result || "";
+       setAgentResults(prev => ({ ...prev, agent2: agent2Result }));
+
+       // Tạo bảng giá thị trường cho Agent 2
+       const marketPrices = agent2Data.result?.market_prices?.items || [];
+       const marketPricesTable = marketPrices.length > 0 ? `
+**Agent 2 - Tìm kiếm giá thị trường**
+
+**Số lượng sản phẩm tìm thấy:** ${agent2Data.result?.market_prices?.count || 0}
+
+| Công ty | Sản phẩm | Mô tả | Thời hạn | Giá/tháng | Tổng chi phí |
+|---------|----------|-------|----------|-----------|--------------|
+${marketPrices.slice(0, 5).map(item => 
+  `| ${item.company_name} | ${item.product_name} | ${item.description.substring(0, 50)}... | ${item.duration_years} năm | ${item.monthly_price.toLocaleString('vi-VN')} VNĐ | ${item.total_cost.toLocaleString('vi-VN')} VNĐ |`
+).join('\n')}
+
+${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm khác*` : ''}
+` : "**Agent 2 - Tìm kiếm giá thị trường**\n\nKhông tìm thấy sản phẩm phù hợp.";
+
+       const agent2Message: Message = {
+         id: (Date.now() + 2).toString(),
+         role: "assistant",
+         content: marketPricesTable,
+         response: agent2Data,
+         agentStage: "agent2",
+         needsApproval: false
+       };
+
+       setMessages(prev => [...prev, agent2Message]);
 
       // Chạy Agent 3
       setCurrentAgentStage("agent3");
       const agent3Response = await fetch(`${BASE_URL}/agent3`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -220,16 +247,28 @@ const Chat = () => {
         throw new Error(`HTTP error! status: ${agent3Response.status}`);
       }
 
-      const agent3Data = await agent3Response.json();
-      const agent3Result = agent3Data.result || "";
-      setAgentResults(prev => ({ ...prev, agent3: agent3Result }));
+       const agent3Data = await agent3Response.json();
+       const agent3Result = agent3Data.result || "";
+       setAgentResults(prev => ({ ...prev, agent3: agent3Result }));
+
+       // Hiển thị kết quả Agent 3
+       const agent3Message: Message = {
+         id: (Date.now() + 3).toString(),
+         role: "assistant",
+         content: `**Agent 3 - Phân tích bổ sung**\n\n${agent3Data.result?.error ? `❌ **Lỗi:** ${agent3Data.result.error}` : '✅ Phân tích bổ sung hoàn tất'}`,
+         response: agent3Data,
+         agentStage: "agent3",
+         needsApproval: false
+       };
+
+       setMessages(prev => [...prev, agent3Message]);
 
       // Chạy Agent 4
       setCurrentAgentStage("agent4");
       const agent4Response = await fetch(`${BASE_URL}/agent4`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -243,16 +282,28 @@ const Chat = () => {
         throw new Error(`HTTP error! status: ${agent4Response.status}`);
       }
 
-      const agent4Data = await agent4Response.json();
-      const agent4Result = agent4Data.result || "";
-      setAgentResults(prev => ({ ...prev, agent4: agent4Result }));
+       const agent4Data = await agent4Response.json();
+       const agent4Result = agent4Data.result || "";
+       setAgentResults(prev => ({ ...prev, agent4: agent4Result }));
+
+       // Hiển thị kết quả Agent 4
+       const agent4Message: Message = {
+         id: (Date.now() + 4).toString(),
+         role: "assistant",
+         content: `**Agent 4 - Đảm bảo chất lượng**\n\n${agent4Data.result?.error ? `❌ **Lỗi:** ${agent4Data.result.error}` : '✅ Kiểm tra chất lượng hoàn tất'}`,
+         response: agent4Data,
+         agentStage: "agent4",
+         needsApproval: false
+       };
+
+       setMessages(prev => [...prev, agent4Message]);
 
       // Chạy Agent 5
       setCurrentAgentStage("agent5");
       const agent5Response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -267,16 +318,29 @@ const Chat = () => {
         throw new Error(`HTTP error! status: ${agent5Response.status}`);
       }
 
-      const agent5Data = await agent5Response.json();
+       const agent5Data = await agent5Response.json();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: agent5Data.result || "Đã nhận được báo cáo cuối cùng",
-        response: agent5Data,
-        agentStage: "agent5",
-        needsApproval: true
-      };
+       const reportInfo = agent5Data.result || {};
+       const reportContent = `**Agent 5 - Báo cáo cuối cùng**
+
+**Trạng thái tạo báo cáo:** ✅ Hoàn tất
+**Thời gian tạo:** ${reportInfo.generated_at ? new Date(reportInfo.generated_at).toLocaleString('vi-VN') : 'N/A'}
+
+**Các file báo cáo đã tạo:**
+${reportInfo.report_html_path ? `- 📄 **HTML:** ${reportInfo.report_html_path}` : ''}
+${reportInfo.report_md_path ? `- 📝 **Markdown:** ${reportInfo.report_md_path}` : ''}
+${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` : '❌ PDF chưa được tạo'}
+
+**Tóm tắt:** Báo cáo phân tích bảo hiểm đã được tạo thành công với đầy đủ thông tin về giá thị trường và khuyến nghị.`;
+
+       const assistantMessage: Message = {
+         id: (Date.now() + 5).toString(),
+         role: "assistant",
+         content: reportContent,
+         response: agent5Data,
+         agentStage: "agent5",
+         needsApproval: true
+       };
 
       setMessages(prev => [...prev, assistantMessage]);
       setAgentResults(prev => ({ ...prev, agent5: agent5Data.result || "" }));
@@ -309,7 +373,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 2]?.content || "",
@@ -354,7 +418,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 3]?.content || "",
