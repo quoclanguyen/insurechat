@@ -289,13 +289,42 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
       }
 
        const agent3Data = await agent3Response.json();
-       setAgentResults(prev => ({ ...prev, agent3: agent3Data }));
+       
+       // Parse the JSON string result for Agent 3
+       let parsedAgent3Result: any = {};
+       try {
+         parsedAgent3Result = typeof agent3Data.result === 'string' ? JSON.parse(agent3Data.result) : agent3Data.result;
+       } catch (e) {
+         console.error('Error parsing Agent 3 result:', e);
+         parsedAgent3Result = agent3Data.result || {};
+       }
+       
+       setAgentResults(prev => ({ ...prev, agent3: parsedAgent3Result }));
 
-       // Hiển thị kết quả Agent 3
+       // Tạo bảng sản phẩm bổ sung cho Agent 3
+       const companyProducts = parsedAgent3Result?.company_products || [];
+       const agent3Content = parsedAgent3Result?.error ? 
+         `**Agent 3 - Phân tích bổ sung**\n\n❌ **Lỗi:** ${parsedAgent3Result.error}` :
+         `**Agent 3 - Phân tích bổ sung**
+
+**Danh mục khớp:** ${parsedAgent3Result?.category_matched || 'N/A'}
+**Thời gian truy xuất:** ${parsedAgent3Result?.retrieved_at ? new Date(parsedAgent3Result.retrieved_at).toLocaleString('vi-VN') : 'N/A'}
+**Số sản phẩm bổ sung:** ${companyProducts.length}
+
+${companyProducts.length > 0 ? `
+| Công ty | Sản phẩm | Mô tả | Thời hạn | Giá/tháng | Tổng chi phí |
+|---------|----------|-------|----------|-----------|--------------|
+${companyProducts.slice(0, 5).map(item => 
+  `| ${item.company_name} | ${item.product_name} | ${item.description.substring(0, 50)}... | ${item.duration_years} năm | ${item.monthly_price.toLocaleString('vi-VN')} VNĐ | ${item.total_cost.toLocaleString('vi-VN')} VNĐ |`
+).join('\n')}
+
+${companyProducts.length > 5 ? `\n*...và ${companyProducts.length - 5} sản phẩm khác*` : ''}
+` : '\nKhông tìm thấy sản phẩm bổ sung phù hợp.'}`;
+
        const agent3Message: Message = {
          id: (Date.now() + 3).toString(),
          role: "assistant",
-         content: `**Agent 3 - Phân tích bổ sung**\n\n${agent3Data.result?.error ? `❌ **Lỗi:** ${agent3Data.result.error}` : '✅ Phân tích bổ sung hoàn tất'}`,
+         content: agent3Content,
          response: agent3Data,
          agentStage: "agent3",
          needsApproval: false
@@ -314,7 +343,7 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
            "data_query": originalQuery,
            "analysis_result": agent1RawData,
            "optimization_result": parsedAgent2Result,
-           "additional_insights": agent3Data
+           "additional_insights": parsedAgent3Result
          })
        });
 
@@ -348,7 +377,7 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
            "data_query": originalQuery,
            "analysis_result": agent1RawData,
            "optimization_result": parsedAgent2Result,
-           "additional_insights": agent3Data,
+           "additional_insights": parsedAgent3Result,
            "qa_result": agent4Data
          })
        });
