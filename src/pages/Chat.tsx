@@ -139,7 +139,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": message
@@ -186,7 +186,7 @@ const Chat = () => {
       const agent2Response = await fetch(`${BASE_URL}/agent2`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -207,7 +207,7 @@ const Chat = () => {
       const agent3Response = await fetch(`${BASE_URL}/agent3`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -229,7 +229,7 @@ const Chat = () => {
       const agent4Response = await fetch(`${BASE_URL}/agent4`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -252,7 +252,7 @@ const Chat = () => {
       const agent5Response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": originalQuery,
@@ -309,7 +309,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent1`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 2]?.content || "",
@@ -354,7 +354,7 @@ const Chat = () => {
       const response = await fetch(`${BASE_URL}/agent5`, {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           "data_query": messages[messages.length - 3]?.content || "",
