@@ -60,7 +60,7 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "https://formal-commands-assumed-these.trycloudflare.com";
+    "https://exhibition-collins-chi-hostel.trycloudflare.com";
 
   // Helper function to create download URLs
   const createDownloadUrl = (filePath: string) => {
