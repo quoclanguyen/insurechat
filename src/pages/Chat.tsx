@@ -172,35 +172,42 @@ const Chat = () => {
     }
   };
 
-  const handleApproveAgent1 = async () => {
-    setSending(true);
-    try {
-      const originalQuery = messages[messages.length - 2]?.content || "";
-      const agent1Result = messages[messages.length - 1]?.content || "";
+   const handleApproveAgent1 = async () => {
+     setSending(true);
+     try {
+       const originalQuery = messages[messages.length - 2]?.content || "";
+       const agent1Message = messages[messages.length - 1];
+       const agent1RawData = agent1Message?.response || {};
+       
+       // Lưu kết quả Agent 1 (raw data)
+       setAgentResults(prev => ({ ...prev, agent1: agent1RawData }));
+       
+       // Ẩn nút duyệt và feedback cho Agent 1
+       setMessages(prev => prev.map(msg =>
+         msg.agentStage === "agent1" && msg.needsApproval
+           ? { ...msg, needsApproval: false }
+           : msg
+       ));
       
-      // Lưu kết quả Agent 1
-      setAgentResults(prev => ({ ...prev, agent1: agent1Result }));
-      
-      // Chạy Agent 2
-      setCurrentAgentStage("agent2");
-      const agent2Response = await fetch(`${BASE_URL}/agent2`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: JSON.stringify({
-          "data_query": originalQuery,
-          "analysis_result": agent1Result
-        })
-      });
+       // Chạy Agent 2
+       setCurrentAgentStage("agent2");
+       const agent2Response = await fetch(`${BASE_URL}/agent2`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "text/plain",
+         },
+         body: JSON.stringify({
+           "data_query": originalQuery,
+           "analysis_result": agent1RawData
+         })
+       });
 
       if (!agent2Response.ok) {
         throw new Error(`HTTP error! status: ${agent2Response.status}`);
       }
 
        const agent2Data = await agent2Response.json();
-       const agent2Result = agent2Data.result || "";
-       setAgentResults(prev => ({ ...prev, agent2: agent2Result }));
+       setAgentResults(prev => ({ ...prev, agent2: agent2Data }));
 
        // Tạo bảng giá thị trường cho Agent 2
        const marketPrices = agent2Data.result?.market_prices?.items || [];
@@ -229,27 +236,26 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
 
        setMessages(prev => [...prev, agent2Message]);
 
-      // Chạy Agent 3
-      setCurrentAgentStage("agent3");
-      const agent3Response = await fetch(`${BASE_URL}/agent3`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: JSON.stringify({
-          "data_query": originalQuery,
-          "analysis_result": agent1Result,
-          "optimization_result": agent2Result
-        })
-      });
+       // Chạy Agent 3
+       setCurrentAgentStage("agent3");
+       const agent3Response = await fetch(`${BASE_URL}/agent3`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "text/plain",
+         },
+         body: JSON.stringify({
+           "data_query": originalQuery,
+           "analysis_result": agent1RawData,
+           "optimization_result": agent2Data
+         })
+       });
 
       if (!agent3Response.ok) {
         throw new Error(`HTTP error! status: ${agent3Response.status}`);
       }
 
        const agent3Data = await agent3Response.json();
-       const agent3Result = agent3Data.result || "";
-       setAgentResults(prev => ({ ...prev, agent3: agent3Result }));
+       setAgentResults(prev => ({ ...prev, agent3: agent3Data }));
 
        // Hiển thị kết quả Agent 3
        const agent3Message: Message = {
@@ -263,28 +269,27 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
 
        setMessages(prev => [...prev, agent3Message]);
 
-      // Chạy Agent 4
-      setCurrentAgentStage("agent4");
-      const agent4Response = await fetch(`${BASE_URL}/agent4`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: JSON.stringify({
-          "data_query": originalQuery,
-          "analysis_result": agent1Result,
-          "optimization_result": agent2Result,
-          "additional_insights": agent3Result
-        })
-      });
+       // Chạy Agent 4
+       setCurrentAgentStage("agent4");
+       const agent4Response = await fetch(`${BASE_URL}/agent4`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "text/plain",
+         },
+         body: JSON.stringify({
+           "data_query": originalQuery,
+           "analysis_result": agent1RawData,
+           "optimization_result": agent2Data,
+           "additional_insights": agent3Data
+         })
+       });
 
       if (!agent4Response.ok) {
         throw new Error(`HTTP error! status: ${agent4Response.status}`);
       }
 
        const agent4Data = await agent4Response.json();
-       const agent4Result = agent4Data.result || "";
-       setAgentResults(prev => ({ ...prev, agent4: agent4Result }));
+       setAgentResults(prev => ({ ...prev, agent4: agent4Data }));
 
        // Hiển thị kết quả Agent 4
        const agent4Message: Message = {
@@ -298,21 +303,21 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
 
        setMessages(prev => [...prev, agent4Message]);
 
-      // Chạy Agent 5
-      setCurrentAgentStage("agent5");
-      const agent5Response = await fetch(`${BASE_URL}/agent5`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: JSON.stringify({
-          "data_query": originalQuery,
-          "analysis_result": agent1Result,
-          "optimization_result": agent2Result,
-          "additional_insights": agent3Result,
-          "qa_result": agent4Result
-        })
-      });
+       // Chạy Agent 5
+       setCurrentAgentStage("agent5");
+       const agent5Response = await fetch(`${BASE_URL}/agent5`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "text/plain",
+         },
+         body: JSON.stringify({
+           "data_query": originalQuery,
+           "analysis_result": agent1RawData,
+           "optimization_result": agent2Data,
+           "additional_insights": agent3Data,
+           "qa_result": agent4Data
+         })
+       });
 
       if (!agent5Response.ok) {
         throw new Error(`HTTP error! status: ${agent5Response.status}`);
@@ -343,7 +348,7 @@ ${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` :
        };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setAgentResults(prev => ({ ...prev, agent5: agent5Data.result || "" }));
+      setAgentResults(prev => ({ ...prev, agent5: agent5Data }));
     } catch (error: any) {
       console.error("Error processing agents:", error);
       toast.error(error.message || "Không thể xử lý yêu cầu");
@@ -420,14 +425,14 @@ ${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` :
         headers: {
           "Content-Type": "text/plain",
         },
-        body: JSON.stringify({
-          "data_query": messages[messages.length - 3]?.content || "",
-          "analysis_result": agentResults.agent1 || "",
-          "optimization_result": agentResults.agent2 || "",
-          "additional_insights": agentResults.agent3 || "",
-          "qa_result": agentResults.agent4 || "",
-          "feedback": pendingFeedback
-        })
+         body: JSON.stringify({
+           "data_query": messages[messages.length - 3]?.content || "",
+           "analysis_result": agentResults.agent1 || {},
+           "optimization_result": agentResults.agent2 || {},
+           "additional_insights": agentResults.agent3 || {},
+           "qa_result": agentResults.agent4 || {},
+           "feedback": pendingFeedback
+         })
       });
 
       if (!response.ok) {
