@@ -552,13 +552,6 @@ ${evaluatorInfo.rationale || 'Không có thông tin'}
 
 **📁 Các file báo cáo đã tạo:**
 ${reportInfo.report_html_path ? `- 📄 **HTML:** [Tải xuống](${createDownloadUrl(reportInfo.report_html_path)})` : ''}
-${reportInfo.report_md_path ? `- 📝 **Markdown:** [Tải xuống](${createDownloadUrl(reportInfo.report_md_path)})` : ''}
-${reportInfo.report_pdf_path ? `- 📋 **PDF:** [Tải xuống](${createDownloadUrl(reportInfo.report_pdf_path)})` : '❌ PDF chưa được tạo'}
-
-**📊 Biểu đồ trực quan:**
-${visualizerInfo.error ? `❌ **Lỗi tạo biểu đồ:** ${visualizerInfo.error}` : 
-  visualizerInfo.plot_path ? `✅ Biểu đồ đã được tạo: [Tải xuống](${createDownloadUrl(visualizerInfo.plot_path)})` : 
-  '✅ Biểu đồ đã được tạo'}
 
 **Thời gian đánh giá:** ${evaluatorInfo.evaluated_at ? new Date(evaluatorInfo.evaluated_at).toLocaleString('vi-VN') : 'N/A'}
 
