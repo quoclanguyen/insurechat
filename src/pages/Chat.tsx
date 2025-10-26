@@ -352,13 +352,49 @@ ${companyProducts.length > 5 ? `\n*...và ${companyProducts.length - 5} sản ph
       }
 
        const agent4Data = await agent4Response.json();
-       setAgentResults(prev => ({ ...prev, agent4: agent4Data }));
+       
+       // Parse the JSON string result for Agent 4
+       let parsedAgent4Result: any = {};
+       try {
+         parsedAgent4Result = typeof agent4Data.result === 'string' ? JSON.parse(agent4Data.result) : agent4Data.result;
+       } catch (e) {
+         console.error('Error parsing Agent 4 result:', e);
+         parsedAgent4Result = agent4Data.result || {};
+       }
+       
+       setAgentResults(prev => ({ ...prev, agent4: parsedAgent4Result }));
 
-       // Hiển thị kết quả Agent 4
+       // Tạo nội dung hiển thị cho Agent 4
+       const webInsight = parsedAgent4Result?.web_market_insight || {};
+       const agent4Content = parsedAgent4Result?.error ? 
+         `**Agent 4 - Đảm bảo chất lượng**\n\n❌ **Lỗi:** ${parsedAgent4Result.error}` :
+         `**Agent 4 - Đảm bảo chất lượng**
+
+**Truy vấn sử dụng:** ${webInsight?.query_used || 'N/A'}
+**Số lượng tham chiếu:** ${webInsight?.references?.length || 0}
+**Số lượng điểm nổi bật:** ${webInsight?.highlights?.length || 0}
+
+${webInsight?.highlights?.length > 0 ? `
+**Thông tin thị trường web:**
+${webInsight.highlights.map((highlight: string, index: number) => 
+  `${index + 1}. ${highlight}`
+).join('\n')}
+` : ''}
+
+${webInsight?.references?.length > 0 ? `
+**Tham chiếu:**
+${webInsight.references.map((ref: string, index: number) => 
+  `${index + 1}. ${ref}`
+).join('\n')}
+` : ''}
+
+${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?.references?.length) ? 
+  '✅ Kiểm tra chất lượng hoàn tất - Không có thông tin bổ sung từ web' : ''}`;
+
        const agent4Message: Message = {
          id: (Date.now() + 4).toString(),
          role: "assistant",
-         content: `**Agent 4 - Đảm bảo chất lượng**\n\n${agent4Data.result?.error ? `❌ **Lỗi:** ${agent4Data.result.error}` : '✅ Kiểm tra chất lượng hoàn tất'}`,
+         content: agent4Content,
          response: agent4Data,
          agentStage: "agent4",
          needsApproval: false
@@ -378,7 +414,7 @@ ${companyProducts.length > 5 ? `\n*...và ${companyProducts.length - 5} sản ph
            "analysis_result": agent1RawData,
            "optimization_result": parsedAgent2Result,
            "additional_insights": parsedAgent3Result,
-           "qa_result": agent4Data
+           "qa_result": parsedAgent4Result
          })
        });
 
