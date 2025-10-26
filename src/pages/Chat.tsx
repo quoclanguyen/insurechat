@@ -152,10 +152,19 @@ const Chat = () => {
 
       const data = await response.json();
 
+       // Parse the JSON string result
+       let parsedResult: any = {};
+       try {
+         parsedResult = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+       } catch (e) {
+         console.error('Error parsing Agent 1 result:', e);
+         parsedResult = data.result || {};
+       }
+
        const assistantMessage: Message = {
          id: (Date.now() + 1).toString(),
          role: "assistant",
-         content: `**Agent 1 - Phân tích dữ liệu**\n\n**Độ tin cậy:** ${data.result?.confidence ? (data.result.confidence * 100).toFixed(1) + '%' : 'N/A'}\n\n**Thông tin khách hàng:**\n- Tuổi: ${data.result?.structured_request?.customer_profile?.age || 'N/A'}\n- Giới tính: ${data.result?.structured_request?.customer_profile?.gender || 'N/A'}\n- Vị trí: ${data.result?.structured_request?.customer_profile?.location || 'N/A'}\n\n**Loại bảo hiểm:** ${data.result?.structured_request?.policy_type || 'N/A'}\n\n**Lợi ích yêu cầu:** ${data.result?.structured_request?.benefits?.length ? data.result.structured_request.benefits.join(', ') : 'Không có'}`,
+         content: `**Agent 1 - Phân tích dữ liệu**\n\n**Độ tin cậy:** ${parsedResult?.confidence ? (parsedResult.confidence * 100).toFixed(1) + '%' : 'N/A'}\n\n**Thông tin khách hàng:**\n- Tuổi: ${parsedResult?.structured_request?.customer_profile?.age || 'N/A'}\n- Giới tính: ${parsedResult?.structured_request?.customer_profile?.gender || 'N/A'}\n- Vị trí: ${parsedResult?.structured_request?.customer_profile?.location || 'N/A'}\n\n**Loại bảo hiểm:** ${parsedResult?.structured_request?.policy_type || 'N/A'}\n\n**Gợi ý giá:** ${parsedResult?.structured_request?.price_hint || 'N/A'}\n\n**Ưu tiên:** ${parsedResult?.structured_request?.priority || 'N/A'}\n\n**Lợi ích yêu cầu:** ${parsedResult?.structured_request?.benefits?.length ? parsedResult.structured_request.benefits.join(', ') : 'Không có'}`,
          response: data,
          agentStage: "agent1",
          needsApproval: true
@@ -177,7 +186,20 @@ const Chat = () => {
      try {
        const originalQuery = messages[messages.length - 2]?.content || "";
        const agent1Message = messages[messages.length - 1];
-       const agent1RawData = agent1Message?.response || {};
+       const agent1Response = agent1Message?.response || {};
+       
+       // Parse the JSON string result for Agent 1
+       let agent1RawData: any = {};
+       try {
+         if (agent1Response.result && typeof agent1Response.result === 'string') {
+           agent1RawData = JSON.parse(agent1Response.result);
+         } else {
+           agent1RawData = agent1Response.result || agent1Response;
+         }
+       } catch (e) {
+         console.error('Error parsing Agent 1 result for Agent 2:', e);
+         agent1RawData = agent1Response.result || agent1Response;
+       }
        
        // Lưu kết quả Agent 1 (raw data)
        setAgentResults(prev => ({ ...prev, agent1: agent1RawData }));
