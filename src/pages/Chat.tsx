@@ -229,14 +229,26 @@ const Chat = () => {
       }
 
        const agent2Data = await agent2Response.json();
-       setAgentResults(prev => ({ ...prev, agent2: agent2Data }));
+       
+       // Parse the JSON string result for Agent 2
+       let parsedAgent2Result: any = {};
+       try {
+         parsedAgent2Result = typeof agent2Data.result === 'string' ? JSON.parse(agent2Data.result) : agent2Data.result;
+       } catch (e) {
+         console.error('Error parsing Agent 2 result:', e);
+         parsedAgent2Result = agent2Data.result || {};
+       }
+       
+       setAgentResults(prev => ({ ...prev, agent2: parsedAgent2Result }));
 
        // Tạo bảng giá thị trường cho Agent 2
-       const marketPrices = agent2Data.result?.market_prices?.items || [];
+       const marketPrices = parsedAgent2Result?.market_prices?.items || [];
        const marketPricesTable = marketPrices.length > 0 ? `
 **Agent 2 - Tìm kiếm giá thị trường**
 
-**Số lượng sản phẩm tìm thấy:** ${agent2Data.result?.market_prices?.count || 0}
+**Số lượng sản phẩm tìm thấy:** ${parsedAgent2Result?.market_prices?.count || 0}
+**Danh mục sử dụng:** ${parsedAgent2Result?.category_used || 'N/A'}
+**Thời gian tìm kiếm:** ${parsedAgent2Result?.fetched_at ? new Date(parsedAgent2Result.fetched_at).toLocaleString('vi-VN') : 'N/A'}
 
 | Công ty | Sản phẩm | Mô tả | Thời hạn | Giá/tháng | Tổng chi phí |
 |---------|----------|-------|----------|-----------|--------------|
@@ -268,7 +280,7 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
          body: JSON.stringify({
            "data_query": originalQuery,
            "analysis_result": agent1RawData,
-           "optimization_result": agent2Data
+           "optimization_result": parsedAgent2Result
          })
        });
 
@@ -301,7 +313,7 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
          body: JSON.stringify({
            "data_query": originalQuery,
            "analysis_result": agent1RawData,
-           "optimization_result": agent2Data,
+           "optimization_result": parsedAgent2Result,
            "additional_insights": agent3Data
          })
        });
@@ -335,7 +347,7 @@ ${marketPrices.length > 5 ? `\n*...và ${marketPrices.length - 5} sản phẩm k
          body: JSON.stringify({
            "data_query": originalQuery,
            "analysis_result": agent1RawData,
-           "optimization_result": agent2Data,
+           "optimization_result": parsedAgent2Result,
            "additional_insights": agent3Data,
            "qa_result": agent4Data
          })
