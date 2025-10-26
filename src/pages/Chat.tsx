@@ -437,7 +437,6 @@ ${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?
        let evaluatorInfo: any = {};
        try {
          if (parsedAgent5Result?.evaluator && typeof parsedAgent5Result.evaluator === 'string') {
-           // Extract key-value pairs from the evaluator string with more precise regex
            const evaluatorStr = parsedAgent5Result.evaluator;
            
            // Helper function to extract values more precisely
@@ -448,12 +447,45 @@ ${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?
              return value === 'None' ? null : value;
            };
            
+           // Extract company information
+           const companyMatch = evaluatorStr.match(/company=CompanyMatch\([^)]+\)/);
+           let companyInfo = null;
+           if (companyMatch) {
+             const companyStr = companyMatch[0];
+             companyInfo = {
+               product_id: companyStr.match(/product_id='([^']+)'/)?.[1] || null,
+               name: companyStr.match(/name='([^']+)'/)?.[1] || null,
+               current_price: companyStr.match(/current_price=([^,\s]+)/)?.[1] || null
+             };
+           }
+           
+           // Extract market summary
+           const marketMatch = evaluatorStr.match(/market_summary=MarketSummary\([^)]+\)/);
+           let marketInfo = null;
+           if (marketMatch) {
+             const marketStr = marketMatch[0];
+             marketInfo = {
+               median: marketStr.match(/market_median=([^,\s]+)/)?.[1] || null,
+               mean: marketStr.match(/market_mean=([^,\s]+)/)?.[1] || null,
+               count: marketStr.match(/market_count=([^,\s]+)/)?.[1] || null
+             };
+           }
+           
+           // Extract benefits and alternatives
+           const benefitsToAdd = evaluatorStr.match(/benefits_to_add=\[([^\]]+)\]/)?.[1] || '';
+           const benefitsToRemove = evaluatorStr.match(/benefits_to_remove=\[([^\]]+)\]/)?.[1] || '';
+           const alternatives = evaluatorStr.match(/alternatives=\[([^\]]+)\]/)?.[1] || '';
+           
            evaluatorInfo = {
              recommended_price: extractValue(/recommended_price=([^,\s]+)/),
              change_amount: extractValue(/change_amount=([^,\s]+)/),
              change_pct: extractValue(/change_pct=([^,\s]+)/),
              price_direction: evaluatorStr.match(/price_direction='([^']+)'/)?.[1] || null,
-             company: extractValue(/company=([^,\s]+)/),
+             company: companyInfo,
+             market_summary: marketInfo,
+             benefits_to_add: benefitsToAdd ? benefitsToAdd.split(',').map(b => b.trim().replace(/'/g, '')) : [],
+             benefits_to_remove: benefitsToRemove ? benefitsToRemove.split(',').map(b => b.trim().replace(/'/g, '')) : [],
+             alternatives: alternatives,
              rationale: evaluatorStr.match(/rationale='([^']+)'/)?.[1] || null,
              evaluated_at: evaluatorStr.match(/evaluated_at='([^']+)'/)?.[1] || null
            };
@@ -463,29 +495,63 @@ ${!parsedAgent4Result?.error && (!webInsight?.highlights?.length && !webInsight?
        }
 
        const reportInfo = parsedAgent5Result?.report || {};
+       const visualizerInfo = parsedAgent5Result?.visualizer || {};
+       
+       // Format currency values
+       const formatCurrency = (value: any) => {
+         if (!value || value === 'None') return 'N/A';
+         const num = parseFloat(value);
+         return isNaN(num) ? value : num.toLocaleString('vi-VN') + ' VNĐ';
+       };
+       
        const reportContent = `**Agent 5 - Báo cáo cuối cùng**
 
 **Trạng thái tạo báo cáo:** ✅ Hoàn tất
 **Thời gian tạo:** ${reportInfo.generated_at ? new Date(reportInfo.generated_at).toLocaleString('vi-VN') : 'N/A'}
 
-**Đánh giá giá cả:**
+**📊 Đánh giá giá cả:**
 - **Hướng giá đề xuất:** ${evaluatorInfo.price_direction || 'N/A'}
-- **Giá đề xuất:** ${evaluatorInfo.recommended_price || 'N/A'}
-- **Thay đổi số tiền:** ${evaluatorInfo.change_amount || 'N/A'}
-- **Thay đổi phần trăm:** ${evaluatorInfo.change_pct || 'N/A'}
-- **Công ty:** ${evaluatorInfo.company || 'N/A'}
+- **Giá đề xuất:** ${formatCurrency(evaluatorInfo.recommended_price)}
+- **Thay đổi số tiền:** ${formatCurrency(evaluatorInfo.change_amount)}
+- **Thay đổi phần trăm:** ${evaluatorInfo.change_pct ? evaluatorInfo.change_pct + '%' : 'N/A'}
 
-**Lý do đánh giá:**
+**🏢 Thông tin công ty:**
+- **Sản phẩm:** ${evaluatorInfo.company?.name || 'N/A'}
+- **Mã sản phẩm:** ${evaluatorInfo.company?.product_id || 'N/A'}
+- **Giá hiện tại:** ${formatCurrency(evaluatorInfo.company?.current_price)}
+
+**📈 Tóm tắt thị trường:**
+- **Giá trung vị:** ${formatCurrency(evaluatorInfo.market_summary?.median)}
+- **Giá trung bình:** ${formatCurrency(evaluatorInfo.market_summary?.mean)}
+- **Số sản phẩm:** ${evaluatorInfo.market_summary?.count || 'N/A'}
+
+**✅ Lợi ích đề xuất thêm:**
+${evaluatorInfo.benefits_to_add?.length > 0 ? 
+  evaluatorInfo.benefits_to_add.map((benefit: string) => `- ${benefit}`).join('\n') : 
+  '- Không có'}
+
+**❌ Lợi ích đề xuất loại bỏ:**
+${evaluatorInfo.benefits_to_remove?.length > 0 ? 
+  evaluatorInfo.benefits_to_remove.map((benefit: string) => `- ${benefit}`).join('\n') : 
+  '- Không có'}
+
+**🔄 Các lựa chọn thay thế:**
+${evaluatorInfo.alternatives ? 'Có các lựa chọn thay thế được đề xuất' : 'Không có lựa chọn thay thế'}
+
+**💡 Lý do đánh giá:**
 ${evaluatorInfo.rationale || 'Không có thông tin'}
 
-**Các file báo cáo đã tạo:**
+**📁 Các file báo cáo đã tạo:**
 ${reportInfo.report_html_path ? `- 📄 **HTML:** ${reportInfo.report_html_path}` : ''}
 ${reportInfo.report_md_path ? `- 📝 **Markdown:** ${reportInfo.report_md_path}` : ''}
 ${reportInfo.report_pdf_path ? `- 📋 **PDF:** ${reportInfo.report_pdf_path}` : '❌ PDF chưa được tạo'}
 
+**📊 Biểu đồ trực quan:**
+${visualizerInfo.error ? `❌ **Lỗi tạo biểu đồ:** ${visualizerInfo.error}` : '✅ Biểu đồ đã được tạo'}
+
 **Thời gian đánh giá:** ${evaluatorInfo.evaluated_at ? new Date(evaluatorInfo.evaluated_at).toLocaleString('vi-VN') : 'N/A'}
 
-**Tóm tắt:** Báo cáo phân tích bảo hiểm đã được tạo thành công với đầy đủ thông tin về giá thị trường và khuyến nghị.`;
+**📋 Tóm tắt:** Báo cáo phân tích bảo hiểm đã được tạo thành công với đầy đủ thông tin về giá thị trường, khuyến nghị và các lựa chọn thay thế.`;
 
        const assistantMessage: Message = {
          id: (Date.now() + 5).toString(),
